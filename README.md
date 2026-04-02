@@ -17,19 +17,19 @@ Binance WSS ──► BinanceListener ──► Parser ──► PriceEventQueue
 
 ### Module boundaries
 
-| Path | Responsibility |
-|------|---------------|
-| `src/core/types.ts` | Canonical `PriceEvent` type; `SUPPORTED_SYMBOLS` |
-| `src/core/queue.ts` | Typed `EventEmitter` bus — the only coupling point between ingestion and consumers |
-| `src/core/logger.ts` | Structured JSON logger (stdout/stderr) |
-| `src/services/parser.ts` | Pure function: Binance raw payload → `PriceEvent \| null` |
-| `src/services/store.ts` | In-memory `Map<symbol, PriceEvent>` — single write path via queue |
-| `src/services/binance.listener.ts` | Binance WS connection, exponential-backoff reconnect |
-| `src/services/broadcaster.ts` | Queue subscriber; fans out to `ClientManager`; logs throughput metrics |
-| `src/ws/clientManager.ts` | Client registry: register, unregister, broadcast |
-| `src/ws/server.ts` | HTTP server + WS upgrade handler (restricted to `/ws` path) |
-| `src/api/price.controller.ts` | `GET /price[?symbol=X]` handler |
-| `src/app.ts` | Composition root; graceful shutdown on `SIGINT`/`SIGTERM` |
+| Path                               | Responsibility                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/core/types.ts`                | Canonical `PriceEvent` type; `SUPPORTED_SYMBOLS`                                   |
+| `src/core/queue.ts`                | Typed `EventEmitter` bus — the only coupling point between ingestion and consumers |
+| `src/core/logger.ts`               | Structured JSON logger (stdout/stderr)                                             |
+| `src/services/parser.ts`           | Pure function: Binance raw payload → `PriceEvent \| null`                          |
+| `src/services/store.ts`            | In-memory `Map<symbol, PriceEvent>` — single write path via queue                  |
+| `src/services/binance.listener.ts` | Binance WS connection, exponential-backoff reconnect                               |
+| `src/services/broadcaster.ts`      | Queue subscriber; fans out to `ClientManager`; logs throughput metrics             |
+| `src/ws/clientManager.ts`          | Client registry: register, unregister, broadcast                                   |
+| `src/ws/server.ts`                 | HTTP server + WS upgrade handler (restricted to `/ws` path)                        |
+| `src/api/price.controller.ts`      | `GET /price[?symbol=X]` handler                                                    |
+| `src/app.ts`                       | Composition root; graceful shutdown on `SIGINT`/`SIGTERM`                          |
 
 ## Prerequisites
 
@@ -92,18 +92,20 @@ Connect to `ws://localhost:8000/ws`. Each message is a JSON `PriceEvent`:
 ```
 GET /price
 ```
+
 Returns all tracked symbols as `{ [symbol]: PriceEvent }`.
 
 ```
 GET /price?symbol=BTCUSDT
 ```
+
 Returns the latest `PriceEvent` for a single symbol, or `404` if not yet received.
 
 ## Environment
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8000` | HTTP + WebSocket listen port |
+| Variable | Default | Description                  |
+| -------- | ------- | ---------------------------- |
+| `PORT`   | `8000`  | HTTP + WebSocket listen port |
 
 ## Supported symbols
 
