@@ -1,12 +1,23 @@
 {
   "name": "pricecast",
-  "module": "index.ts",
+  "version": "1.0.0",
+  "description": "Real-time crypto price streaming service",
   "type": "module",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "scripts": {
+    "dev": "bun --hot src/app.ts",
+    "start": "bun src/app.ts",
+    "build": "bun build --compile --minify src/app.ts --outfile dist/pricecast",
+    "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
+  "dependencies": {
+    "uuid": "^13.0.0",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/uuid": "^11.0.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5"
   }
 }
