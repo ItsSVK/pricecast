@@ -1,82 +1,54 @@
 # pricecast
 
-Real-time crypto price streaming service. Connects to the Binance WebSocket feed, normalises price events through an internal event queue, and broadcasts them to all connected WebSocket clients. Exposes a REST endpoint for snapshot lookups.
+A production-grade real-time crypto price streaming service built with Node.js and TypeScript. It connects to the Binance WebSocket feed, processes incoming price ticks through a decoupled internal event queue, and broadcasts live updates to all connected WebSocket clients. A REST endpoint is available for point-in-time price snapshots.
 
-## Architecture
+## How it works
 
 ```
-Binance WSS ──► BinanceListener ──► Parser ──► PriceEventQueue
-                                                    │
-                                        ┌───────────┴───────────┐
-                                    PriceStore             Broadcaster
-                                        │                       │
-                                  GET /price             ClientManager
-                                                               │
-                                                     WebSocket clients
+Binance WSS ──► Listener ──► Parser ──► EventQueue ──► Broadcaster ──► WebSocket clients
+                                             │
+                                          PriceStore ──► GET /price
 ```
 
-### Module boundaries
+1. **BinanceListener** maintains a persistent connection to Binance's combined ticker stream. If the connection drops it automatically reconnects with exponential backoff (1 s → 30 s). A circuit breaker stops retrying after 10 consecutive failures.
 
-| Path                               | Responsibility                                                                     |
-| ---------------------------------- | ---------------------------------------------------------------------------------- |
-| `src/core/types.ts`                | Canonical `PriceEvent` type; `SUPPORTED_SYMBOLS`                                   |
-| `src/core/queue.ts`                | Typed `EventEmitter` bus — the only coupling point between ingestion and consumers |
-| `src/core/logger.ts`               | Structured JSON logger (stdout/stderr)                                             |
-| `src/services/parser.ts`           | Pure function: Binance raw payload → `PriceEvent \| null`                          |
-| `src/services/store.ts`            | In-memory `Map<symbol, PriceEvent>` — single write path via queue                  |
-| `src/services/binance.listener.ts` | Binance WS connection, exponential-backoff reconnect                               |
-| `src/services/broadcaster.ts`      | Queue subscriber; fans out to `ClientManager`; logs throughput metrics             |
-| `src/ws/clientManager.ts`          | Client registry: register, unregister, broadcast                                   |
-| `src/ws/server.ts`                 | HTTP server + WS upgrade handler (restricted to `/ws` path)                        |
-| `src/api/price.controller.ts`      | `GET /price[?symbol=X]` handler                                                    |
-| `src/app.ts`                       | Composition root; graceful shutdown on `SIGINT`/`SIGTERM`                          |
+2. **Parser** converts the raw Binance payload into a normalised `PriceEvent` — `{ symbol, price, change24h, timestamp }`. This is the only place in the codebase that knows Binance's wire format.
 
-## Prerequisites
+3. **EventQueue** is a typed `EventEmitter` wrapper that acts as the internal message bus. The listener publishes to it; `PriceStore` and `Broadcaster` subscribe independently. Neither side knows the other exists.
 
-- [Bun](https://bun.sh) >= 1.0
+4. **Broadcaster** receives every event from the queue and fans it out to all connected WebSocket clients as a JSON string.
 
-## Development
+5. **PriceStore** keeps the latest price per symbol in memory. It powers the REST API.
+
+6. **WebSocket server** accepts client connections on `ws://localhost:8000/ws`. Incoming connections pass through a per-IP token-bucket rate limiter (HTTP `429` if exceeded) and a global connection ceiling (WS close `1013` if exceeded). A periodic ping/pong sweep evicts zombie connections.
+
+## Setup
 
 ```bash
-# Install dependencies
+cp .env.example .env
 bun install
+```
 
-# Run with hot-reload
+## Running
+
+```bash
+# Development (hot reload)
 bun dev
 
-# Type-check only (no emit)
-bun typecheck
-```
-
-## Production
-
-```bash
-# Run directly (Bun executes TypeScript natively)
+# Production
 bun start
-
-# Build a self-contained binary
-bun run build
-./dist/pricecast
 ```
 
 ## Docker
 
 ```bash
-# Build image
 docker build -t pricecast .
-
-# Run
-docker run -p 8000:8000 pricecast
-
-# Custom port
-docker run -e PORT=9000 -p 9000:9000 pricecast
+docker run --env-file .env -p 8000:8000 pricecast
 ```
 
-## API
+## WebSocket
 
-### WebSocket
-
-Connect to `ws://localhost:8000/ws`. Each message is a JSON `PriceEvent`:
+Connect to `ws://localhost:8000/ws`. You will receive a message on every Binance tick:
 
 ```json
 {
@@ -87,26 +59,21 @@ Connect to `ws://localhost:8000/ws`. Each message is a JSON `PriceEvent`:
 }
 ```
 
-### REST
+Supported symbols: `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `BNBUSDT`
+
+## REST API
 
 ```
-GET /price
+GET /price                   — latest prices for all symbols
+GET /price?symbol=BTCUSDT    — latest price for a single symbol
 ```
 
-Returns all tracked symbols as `{ [symbol]: PriceEvent }`.
+## Configuration
 
-```
-GET /price?symbol=BTCUSDT
-```
-
-Returns the latest `PriceEvent` for a single symbol, or `404` if not yet received.
-
-## Environment
-
-| Variable | Default | Description                  |
-| -------- | ------- | ---------------------------- |
-| `PORT`   | `8000`  | HTTP + WebSocket listen port |
-
-## Supported symbols
-
-`BTCUSDT`, `ETHUSDT` — controlled by `SUPPORTED_SYMBOLS` in `src/core/types.ts`.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8000` | Listen port |
+| `MAX_WS_CONNECTIONS` | `500` | Global WebSocket connection ceiling |
+| `RL_BUCKET_CAPACITY` | `5` | Max connection burst per IP |
+| `RL_REFILL_RATE` | `1` | Tokens refilled per interval |
+| `RL_REFILL_INTERVAL_MS` | `10000` | Refill interval in ms |
