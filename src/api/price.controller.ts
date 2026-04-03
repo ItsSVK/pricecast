@@ -1,12 +1,17 @@
 import { readFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { PriceStore } from '../services/store.ts'
 import { createLogger } from '../core/logger.ts'
 
 const log = createLogger('rest-api')
 
-const homePagePath = join(import.meta.dir, '../../public/index.html')
+// When compiled with `bun build --compile`, import.meta.dir points to a virtual
+// bundle filesystem (/$bunfs/root/…) rather than the real source location.
+// In that case, resolve relative to the actual executable on disk instead.
+const homePagePath = import.meta.dir.startsWith('/$bunfs')
+  ? join(dirname(process.execPath), 'public/index.html')
+  : join(import.meta.dir, '../../public/index.html')
 
 function loadHomePage(): string {
   return readFileSync(homePagePath, 'utf-8')
