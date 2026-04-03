@@ -64,6 +64,7 @@ Supported symbols: `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `BNBUSDT`
 ## REST API
 
 ```
+GET /                        — health check (status, uptime, tracked symbol count)
 GET /price                   — latest prices for all symbols
 GET /price?symbol=BTCUSDT    — latest price for a single symbol
 ```

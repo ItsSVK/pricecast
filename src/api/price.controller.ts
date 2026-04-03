@@ -14,14 +14,30 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 }
 
 // Returns a request handler that can be passed directly to http.createServer / WsServer.
-// Handles:  GET /price          → all latest prices
+// Handles:  GET /         → health check
+//           GET /price    → all latest prices
 //           GET /price?symbol=X → single symbol
 //           everything else     → 404
 export function createPriceController(store: PriceStore) {
   return function handler(req: IncomingMessage, res: ServerResponse): void {
     const { pathname, searchParams } = new URL(req.url ?? '/', 'http://localhost')
 
-    if (req.method !== 'GET' || pathname !== '/price') {
+    if (req.method !== 'GET') {
+      json(res, 404, { error: 'Not found' })
+      return
+    }
+
+    if (pathname === '/') {
+      json(res, 200, {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor(process.uptime()),
+        symbols: store.size,
+      })
+      return
+    }
+
+    if (pathname !== '/price') {
       json(res, 404, { error: 'Not found' })
       return
     }
