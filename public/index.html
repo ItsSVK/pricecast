@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pricecast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:           #070a0f;
+      --surface:      #0c1018;
+      --surface-2:    #111827;
+      --border:       rgba(255, 255, 255, 0.07);
+      --border-lit:   rgba(245, 158, 11, 0.28);
+      --text:         #e2e8f0;
+      --muted:        #4a5568;
+      --accent:       #f59e0b;
+      --accent-dim:   rgba(245, 158, 11, 0.09);
+      --green:        #10b981;
+      --green-dim:    rgba(16, 185, 129, 0.12);
+      --red:          #f43f5e;
+      --red-dim:      rgba(244, 63, 94, 0.12);
+      --indigo:       #818cf8;
+      --radius:       12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .wrapper {
+      max-width: 1120px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1 0 auto;
+      display: flex;
+      flex-direction: column;
+      padding: 36px 24px 24px;
+    }
+
+    /* ── header ── */
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 44px;
+    }
+
+    .wordmark {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .tagline {
+      margin-top: 7px;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: border-color 0.3s, color 0.3s;
+      white-space: nowrap;
+    }
+
+    .status-pill.live   { border-color: rgba(16,185,129,0.35); color: var(--green); }
+    .status-pill.error  { border-color: rgba(244,63,94,0.35);  color: var(--red);   }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .dot.pulse { animation: blink 2s ease-in-out infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── section label ── */
+    .eyebrow {
+      font-size: 0.66rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+      padding-left: 2px;
+    }
+
+    /* ── price grid ── */
+    .price-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .price-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 18px 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s;
+    }
+
+    .price-card:hover { border-color: var(--border-lit); }
+
+    @keyframes flash-green {
+      0%   { background-color: var(--green-dim); }
+      100% { background-color: transparent; }
+    }
+
+    @keyframes flash-red {
+      0%   { background-color: var(--red-dim); }
+      100% { background-color: transparent; }
+    }
+
+    .price-card.up   { animation: flash-green 0.7s ease-out; }
+    .price-card.down { animation: flash-red   0.7s ease-out; }
+
+    .card-symbol {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .card-price {
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 9px;
+    }
+
+    .card-price.loading {
+      color: var(--muted);
+      font-size: 1rem;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 0.75; }
+    }
+
+    .card-change {
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card-change.pos { color: var(--green); }
+    .card-change.neg { color: var(--red); }
+    .card-change.neu { color: var(--muted); }
+
+    .card-time {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      font-size: 0.62rem;
+      color: var(--muted);
+      opacity: 0.55;
+    }
+
+    /* ── bottom row ── */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .bottom-row { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .panel-title {
+      font-size: 0.66rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    /* endpoint list */
+    .ep-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+
+    .ep-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 3px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .badge-get { background: var(--accent-dim); color: var(--accent); }
+    .badge-ws  { background: rgba(129,140,248,0.12); color: var(--indigo); }
+
+    .ep-path { color: var(--text); font-weight: 500; }
+    .ep-note { color: var(--muted); font-size: 0.72rem; margin-left: auto; }
+
+    /* code blocks */
+    .code-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .code-label + .code-label { margin-top: 14px; }
+
+    .code-block {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.55;
+      word-break: break-all;
+      white-space: pre-wrap;
+      margin-bottom: 0;
+    }
+
+    .code-block + .code-label { margin-top: 14px; }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .footer-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-stats b { color: var(--accent); font-weight: 700; }
+
+    /* ── credits ── */
+    .credits {
+      padding-top: 18px;
+      padding-bottom: 24px;
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .credits span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <header>
+      <div>
+        <div class="wordmark">pricecast</div>
+        <div class="tagline">real-time crypto price stream</div>
+      </div>
+      <div class="status-pill" id="pill">
+        <div class="dot" id="dot"></div>
+        <span id="pill-text">connecting</span>
+      </div>
+    </header>
+
+    <div class="eyebrow">Live Prices</div>
+    <div class="price-grid" id="grid"></div>
+
+    <div class="bottom-row">
+      <div class="panel">
+        <div class="panel-title">Endpoints</div>
+        <div class="ep-row">
+          <span class="badge badge-get">GET</span>
+          <span class="ep-path">/</span>
+          <span class="ep-note">dashboard</span>
+        </div>
+        <div class="ep-row">
+          <span class="badge badge-get">GET</span>
+          <span class="ep-path">/price</span>
+          <span class="ep-note">all symbols</span>
+        </div>
+        <div class="ep-row">
+          <span class="badge badge-get">GET</span>
+          <span class="ep-path">/price?symbol=BTCUSDT</span>
+          <span class="ep-note">single</span>
+        </div>
+        <div class="ep-row">
+          <span class="badge badge-ws">WS</span>
+          <span class="ep-path">/ws</span>
+          <span class="ep-note">live stream</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Quick Start</div>
+        <div class="code-label">REST snapshot</div>
+        <div class="code-block" id="qs-rest"></div>
+        <div class="code-label">WebSocket stream</div>
+        <div class="code-block" id="qs-ws"></div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="footer-stats">
+        <div>uptime <b id="f-uptime">—</b></div>
+        <div>symbols <b id="f-symbols">—</b></div>
+        <div>messages <b id="f-msgs">0</b></div>
+      </div>
+      <div>binance @ticker stream</div>
+    </footer>
+
+  </div>
+
+  <div class="credits">
+    crafted with care by <span>Shouvik Mohanta</span>
+  </div>
+
+  <script>
+    // ─── config ──────────────────────────────────────────────────────
+    const SYMBOLS  = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']
+    const WS_URL   = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
+    const API_URL  = `${location.origin}/price`
+
+    // ─── state ───────────────────────────────────────────────────────
+    let msgCount = 0
+    let startTime = Date.now()
+
+    // ─── quick-start urls ─────────────────────────────────────────────
+    document.getElementById('qs-rest').textContent = `curl ${location.origin}/price`
+    document.getElementById('qs-ws').textContent =
+      `const ws = new WebSocket('${WS_URL}')\n` +
+      `ws.onmessage = e => console.log(JSON.parse(e.data))`
+
+    // ─── build price cards ────────────────────────────────────────────
+    const grid  = document.getElementById('grid')
+    const cards = {}
+
+    SYMBOLS.forEach(sym => {
+      const card = document.createElement('div')
+      card.className = 'price-card'
+      card.innerHTML = `
+        <div class="card-symbol">${sym.replace('USDT', ' / USDT')}</div>
+        <div class="card-price loading" id="p-${sym}">loading…</div>
+        <div class="card-change neu" id="c-${sym}">—</div>
+        <div class="card-time" id="t-${sym}"></div>
+      `
+      grid.appendChild(card)
+      cards[sym] = card
+    })
+
+    // ─── format helpers ───────────────────────────────────────────────
+    function fmtPrice(n) {
+      return '$' + (n >= 1000
+        ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }))
+    }
+
+    function fmtTime(ts) {
+      return new Date(ts).toLocaleTimeString('en-US', { hour12: false })
+    }
+
+    // ─── update a single card ─────────────────────────────────────────
+    function updateCard({ symbol, price, change24h, timestamp }) {
+      const card    = cards[symbol]
+      const priceEl = document.getElementById(`p-${symbol}`)
+      const chEl    = document.getElementById(`c-${symbol}`)
+      const tmEl    = document.getElementById(`t-${symbol}`)
+      if (!card) return
+
+      const wasLoading = priceEl.classList.contains('loading')
+      const prev       = parseFloat(priceEl.dataset.raw ?? '0')
+      const dir        = wasLoading ? 0 : price > prev ? 1 : price < prev ? -1 : 0
+
+      priceEl.classList.remove('loading')
+      priceEl.textContent  = fmtPrice(price)
+      priceEl.dataset.raw  = price
+
+      const sign = change24h >= 0 ? '+' : ''
+      const arr  = change24h >= 0 ? '▲' : '▼'
+      chEl.textContent = `${arr} ${sign}${change24h.toFixed(2)}%`
+      chEl.className   = `card-change ${change24h > 0 ? 'pos' : change24h < 0 ? 'neg' : 'neu'}`
+
+      tmEl.textContent = fmtTime(timestamp)
+
+      if (dir !== 0 && !wasLoading) {
+        card.classList.remove('up', 'down')
+        void card.offsetWidth           // force reflow to restart animation
+        card.classList.add(dir > 0 ? 'up' : 'down')
+      }
+    }
+
+    // ─── status pill ──────────────────────────────────────────────────
+    const pill     = document.getElementById('pill')
+    const dotEl    = document.getElementById('dot')
+    const pillText = document.getElementById('pill-text')
+
+    function setStatus(state, label) {
+      pill.className   = `status-pill ${state}`
+      dotEl.className  = `dot${state === 'live' ? ' pulse' : ''}`
+      pillText.textContent = label
+    }
+
+    // ─── footer ticker ────────────────────────────────────────────────
+    const fUptime  = document.getElementById('f-uptime')
+    const fSymbols = document.getElementById('f-symbols')
+    const fMsgs    = document.getElementById('f-msgs')
+
+    setInterval(() => {
+      const s  = Math.floor((Date.now() - startTime) / 1000)
+      const h  = Math.floor(s / 3600)
+      const m  = Math.floor((s % 3600) / 60)
+      const ss = s % 60
+      fUptime.textContent = h ? `${h}h ${m}m ${ss}s` : m ? `${m}m ${ss}s` : `${ss}s`
+      fMsgs.textContent   = msgCount
+    }, 1000)
+
+    // ─── REST prefetch ────────────────────────────────────────────────
+    fetch(API_URL)
+      .then(r => r.json())
+      .then(data => {
+        Object.values(data).forEach(e => updateCard(e))
+        fSymbols.textContent = Object.keys(data).length
+      })
+      .catch(() => {})
+
+    // ─── WebSocket ────────────────────────────────────────────────────
+    function connect() {
+      setStatus('', 'connecting')
+      const ws = new WebSocket(WS_URL)
+
+      ws.onopen = () => setStatus('live', 'live')
+
+      ws.onmessage = ({ data }) => {
+        try {
+          const event = JSON.parse(data)
+          updateCard(event)
+          msgCount++
+          fSymbols.textContent = SYMBOLS.length
+        } catch (_) {}
+      }
+
+      ws.onclose = () => {
+        setStatus('error', 'reconnecting')
+        setTimeout(connect, 3000)
+      }
+
+      ws.onerror = () => ws.close()
+    }
+
+    connect()
+  </script>
+</body>
+</html>

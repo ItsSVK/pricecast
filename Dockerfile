@@ -10,6 +10,7 @@ RUN bun install --frozen-lockfile
 
 COPY tsconfig.json ./
 COPY src ./src
+COPY public ./public
 
 # Produce a single statically-linked executable
 RUN bun build --compile --minify src/app.ts --outfile dist/pricecast
@@ -27,6 +28,7 @@ WORKDIR /app
 RUN apk add --no-cache libstdc++ libgcc
 
 COPY --from=builder /app/dist/pricecast ./pricecast
+COPY --from=builder /app/public ./public
 
 RUN chmod +x ./pricecast
 

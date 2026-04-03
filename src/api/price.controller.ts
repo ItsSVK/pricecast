@@ -1,44 +1,46 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { PriceStore } from '../services/store.ts'
 import { createLogger } from '../core/logger.ts'
 
 const log = createLogger('rest-api')
 
-function json(res: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body)
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Content-Length': Buffer.byteLength(payload),
-  })
-  res.end(payload)
+const homePagePath = join(import.meta.dir, '../../public/index.html')
+
+function loadHomePage(): string {
+  return readFileSync(homePagePath, 'utf-8')
 }
 
-// Returns a request handler that can be passed directly to http.createServer / WsServer.
-// Handles:  GET /         → health check
-//           GET /price    → all latest prices
-//           GET /price?symbol=X → single symbol
-//           everything else     → 404
+function send(res: ServerResponse, status: number, contentType: string, body: string): void {
+  res.writeHead(status, {
+    'Content-Type': contentType,
+    'Content-Length': Buffer.byteLength(body),
+  })
+  res.end(body)
+}
+
+// Handles:
+//   GET /         → static dashboard (index.html)
+//   GET /price    → all latest prices as JSON
+//   GET /price?symbol=X → single symbol as JSON
+//   everything else     → 404
 export function createPriceController(store: PriceStore) {
   return function handler(req: IncomingMessage, res: ServerResponse): void {
     const { pathname, searchParams } = new URL(req.url ?? '/', 'http://localhost')
 
     if (req.method !== 'GET') {
-      json(res, 404, { error: 'Not found' })
+      send(res, 404, 'application/json', JSON.stringify({ error: 'Not found' }))
       return
     }
 
     if (pathname === '/') {
-      json(res, 200, {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: Math.floor(process.uptime()),
-        symbols: store.size,
-      })
+      send(res, 200, 'text/html; charset=utf-8', loadHomePage())
       return
     }
 
     if (pathname !== '/price') {
-      json(res, 404, { error: 'Not found' })
+      send(res, 404, 'application/json', JSON.stringify({ error: 'Not found' }))
       return
     }
 
@@ -48,13 +50,13 @@ export function createPriceController(store: PriceStore) {
       const event = store.get(symbol)
       if (!event) {
         log.warn('Symbol not found in store', { symbol })
-        json(res, 404, { error: `No data for symbol: ${symbol}` })
+        send(res, 404, 'application/json', JSON.stringify({ error: `No data for symbol: ${symbol}` }))
         return
       }
-      json(res, 200, event)
+      send(res, 200, 'application/json', JSON.stringify(event))
       return
     }
 
-    json(res, 200, store.getAll())
+    send(res, 200, 'application/json', JSON.stringify(store.getAll()))
   }
 }

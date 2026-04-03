@@ -34,3 +34,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 load-test.ts
 ws-test.yml
+.agents/
+skills-lock.json

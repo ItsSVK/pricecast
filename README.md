@@ -64,10 +64,12 @@ Supported symbols: `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `BNBUSDT`
 ## REST API
 
 ```
-GET /                        — health check (status, uptime, tracked symbol count)
+GET /                        — API guide in the browser, JSON overview/status for API clients
 GET /price                   — latest prices for all symbols
 GET /price?symbol=BTCUSDT    — latest price for a single symbol
 ```
+
+Open `http://localhost:8000/` in a browser to see a built-in quick start page with the REST routes, WebSocket URL, supported symbols, and example usage.
 
 ## Configuration
 
