@@ -24,10 +24,13 @@ async function main(): Promise<void> {
   // 2. Consumers subscribe before the producer starts (no lost events)
   const store = new PriceStore(queue)
   const clientManager = new ClientManager()
-  new Broadcaster(queue, clientManager)
+  const broadcaster = new Broadcaster(queue, clientManager)
 
   // 3. HTTP + WebSocket server
-  const httpHandler = createPriceController(store)
+  const httpHandler = createPriceController(store, {
+    getUptimeSeconds: () => Math.floor(process.uptime()),
+    getMessageCount: () => broadcaster.totalMessageCount,
+  })
   const server = new WsServer(clientManager, httpHandler)
   await server.listen(PORT)
 

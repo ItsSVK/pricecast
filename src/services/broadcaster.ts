@@ -9,6 +9,7 @@ const log = createLogger('broadcaster')
 // Contains zero business logic — that boundary is intentional and enforced.
 export class Broadcaster {
   private readonly messageCounts = new Map<string, number>()
+  private totalMessages = 0
 
   constructor(
     private readonly queue: PriceEventQueue,
@@ -21,7 +22,12 @@ export class Broadcaster {
   private onEvent(event: PriceEvent): void {
     const payload = JSON.stringify(event)
     this.clientManager.broadcast(payload)
+    this.totalMessages += 1
     this.trackMetrics(event.symbol)
+  }
+
+  get totalMessageCount(): number {
+    return this.totalMessages
   }
 
   // Lightweight throughput metric — logs every 100 messages per symbol.

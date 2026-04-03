@@ -20,12 +20,23 @@ function send(res: ServerResponse, status: number, contentType: string, body: st
   res.end(body)
 }
 
+type RuntimeStatsProvider = {
+  getUptimeSeconds(): number
+  getMessageCount(): number
+}
+
 // Handles:
 //   GET /         → static dashboard (index.html)
 //   GET /price    → all latest prices as JSON
 //   GET /price?symbol=X → single symbol as JSON
 //   everything else     → 404
-export function createPriceController(store: PriceStore) {
+export function createPriceController(
+  store: PriceStore,
+  stats: RuntimeStatsProvider = {
+    getUptimeSeconds: () => Math.floor(process.uptime()),
+    getMessageCount: () => 0,
+  },
+) {
   return function handler(req: IncomingMessage, res: ServerResponse): void {
     const { pathname, searchParams } = new URL(req.url ?? '/', 'http://localhost')
 
@@ -36,6 +47,20 @@ export function createPriceController(store: PriceStore) {
 
     if (pathname === '/') {
       send(res, 200, 'text/html; charset=utf-8', loadHomePage())
+      return
+    }
+
+    if (pathname === '/_stats') {
+      send(
+        res,
+        200,
+        'application/json',
+        JSON.stringify({
+          uptimeSeconds: stats.getUptimeSeconds(),
+          symbols: store.size,
+          messages: stats.getMessageCount(),
+        }),
+      )
       return
     }
 
