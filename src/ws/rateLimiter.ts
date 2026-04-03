@@ -6,9 +6,9 @@ const log = createLogger('rate-limiter')
 // Token bucket config — tunable via environment variables.
 // A client starts with a full bucket and consumes one token per connection attempt.
 // Tokens refill at REFILL_RATE per REFILL_INTERVAL_MS.
-const BUCKET_CAPACITY    = parseInt(process.env['RL_BUCKET_CAPACITY']    ?? '5',      10)
-const REFILL_RATE        = parseInt(process.env['RL_REFILL_RATE']        ?? '1',      10)
-const REFILL_INTERVAL_MS = parseInt(process.env['RL_REFILL_INTERVAL_MS'] ?? '10000',  10)
+const BUCKET_CAPACITY = parseInt(process.env['RL_BUCKET_CAPACITY'] ?? '5', 10)
+const REFILL_RATE = parseInt(process.env['RL_REFILL_RATE'] ?? '1', 10)
+const REFILL_INTERVAL_MS = parseInt(process.env['RL_REFILL_INTERVAL_MS'] ?? '10000', 10)
 
 // Evict stale bucket entries after this long without a connection attempt.
 // Keeps the Map from growing indefinitely for IPs that disappear.
@@ -65,11 +65,11 @@ export class IpRateLimiter {
   reject(socket: Duplex, retryAfterSec: number): void {
     socket.write(
       `HTTP/1.1 429 Too Many Requests\r\n` +
-      `Content-Type: text/plain\r\n` +
-      `Retry-After: ${retryAfterSec}\r\n` +
-      `Connection: close\r\n` +
-      `\r\n` +
-      `Rate limit exceeded. Try again in ${retryAfterSec}s.`,
+        `Content-Type: text/plain\r\n` +
+        `Retry-After: ${retryAfterSec}\r\n` +
+        `Connection: close\r\n` +
+        `\r\n` +
+        `Rate limit exceeded. Try again in ${retryAfterSec}s.`,
     )
     socket.destroy()
   }

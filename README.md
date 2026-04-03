@@ -73,10 +73,10 @@ Open `http://localhost:8000/` in a browser to see a built-in quick start page wi
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8000` | Listen port |
-| `MAX_WS_CONNECTIONS` | `500` | Global WebSocket connection ceiling |
-| `RL_BUCKET_CAPACITY` | `5` | Max connection burst per IP |
-| `RL_REFILL_RATE` | `1` | Tokens refilled per interval |
-| `RL_REFILL_INTERVAL_MS` | `10000` | Refill interval in ms |
+| Variable                | Default | Description                         |
+| ----------------------- | ------- | ----------------------------------- |
+| `PORT`                  | `8000`  | Listen port                         |
+| `MAX_WS_CONNECTIONS`    | `500`   | Global WebSocket connection ceiling |
+| `RL_BUCKET_CAPACITY`    | `5`     | Max connection burst per IP         |
+| `RL_REFILL_RATE`        | `1`     | Tokens refilled per interval        |
+| `RL_REFILL_INTERVAL_MS` | `10000` | Refill interval in ms               |
